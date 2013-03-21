@@ -7,15 +7,24 @@ using System.Threading.Tasks;
 
 
 namespace MarsLander {
-  class LanderBase {
-    public enum landedT { landed, flying, crashed };
+  public enum landedT { landed, flying, crashed };
 
+  class LanderBase {
     private double mAcceleration = 2.0;  // but should be varied
     private double mWind;
     private const double MAX_SAFE_LANDING_SPEED = 4.0;
     private const double MIN_SAFE_X = -0.2;
     private const double MAX_SAFE_X = 0.2;
     private const int SLEEP_TIME_MS = 200;
+
+    public event EventHandler<UpdateTriggeredEventArgs> UpdateTriggered;
+
+    protected virtual void OnUpdateTriggered(UpdateTriggeredEventArgs e) {
+      EventHandler<UpdateTriggeredEventArgs> handler = UpdateTriggered;
+      if (handler != null) {
+        handler(this, e);
+      }
+    }
 
     double mHeight;
     double mXPosition;
@@ -81,11 +90,6 @@ namespace MarsLander {
       mXPosition += mXVelocity + mWind;  // wind 
     }
 
-    public void print() {
-      Console.Write("Height: " + mHeight + " Y-Velocity: " + mYVelocity +
-                    " Position: " + mXPosition + " X-Velocity: " + mXVelocity + " Fuel: " + mFuel);
-    }
-
     public void draw() {
     }
 
@@ -100,9 +104,16 @@ namespace MarsLander {
     public void simulate(bool display) {
       while (!isLanded()) {
         if (display) {
-          print();
-          draw();
-          Thread.Sleep(SLEEP_TIME_MS);       
+          UpdateTriggeredEventArgs args = new UpdateTriggeredEventArgs();
+          args.height = mHeight;
+          args.yVelocity = mYVelocity;
+          args.xVelocity = mXVelocity;
+          args.xPosition = mXPosition;
+          args.fuel = mFuel;
+          args.status = getStatus();
+          OnUpdateTriggered(args);
+
+          Thread.Sleep(SLEEP_TIME_MS);
         }
         update();
       }
@@ -111,8 +122,10 @@ namespace MarsLander {
 
   class Program {
     static void Main(string[] args) {
-      LanderBase l = new LanderBase();
-      l.simulate(display : true);
+      LanderBase lander = new LanderBase();
+      Display display = new Display();
+      lander.UpdateTriggered += display.UpdateTriggeredEventHandler_print;
+      lander.simulate(display : true);
       Console.Read();
     }
   }
