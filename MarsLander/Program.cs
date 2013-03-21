@@ -110,7 +110,9 @@ namespace MarsLander {
     }
 
     public void simulate(bool display) {
-      while (!isLanded()) {
+      do {
+        update();
+
         if (display) {
           UpdateTriggeredEventArgs args = new UpdateTriggeredEventArgs();
           args.height = mHeight;
@@ -123,8 +125,10 @@ namespace MarsLander {
 
           Thread.Sleep(SLEEP_TIME_MS);
         }
-        update();
-      }
+
+      } while (!isLanded());
+
+      Console.WriteLine("Status: " + getStatus());
     }
   }
 
@@ -139,6 +143,7 @@ namespace MarsLander {
       LanderBase lander = new LanderBase();
       Display display = new Display();
       lander.UpdateTriggered += UpdateTriggeredEventHandler_print;
+      lander.UpdateTriggered += display.UpdateTriggeredEventHandler_paint;
 
       Thread displayThread = new Thread((ThreadStart)delegate {
             Application.EnableVisualStyles();

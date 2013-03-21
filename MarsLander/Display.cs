@@ -11,14 +11,18 @@ using System.Windows.Forms;
 namespace MarsLander {
   public partial class Display : Form {
     private UpdateTriggeredEventArgs mDisplayArgs;
+    private Image mLanderImage;
+    private Image mLanderPlatformBlock;
 
     public Display() {
       InitializeComponent();
+      mDisplayArgs = null;
+      mLanderImage = MarsLander.Properties.Resources.pinkie_pie_balloons;
+      mLanderPlatformBlock = MarsLander.Properties.Resources.cloud;
     }
 
     private void Display_Load(object sender, EventArgs e) {
     }
-
 
     public void UpdateTriggeredEventHandler_paint(object sender, UpdateTriggeredEventArgs args) {
       mDisplayArgs = args;
@@ -26,27 +30,38 @@ namespace MarsLander {
     }
 
     private void OnPaint(object sender, PaintEventArgs e) {
+      if (mDisplayArgs == null) {
+        return;
+      }
+
       Graphics g = e.Graphics;
       int pen_width = 2;
       int width = this.Size.Width;
+      int centerWidth = width / 2;
       int deltaX = width / 100;
       int height = this.Size.Height;
       int deltaY = height / 100;
+      int padTop = 10 * deltaY;
+      int padBottom = 3 * deltaX;
 
       Pen landerPen = new Pen(Color.Black, pen_width);
 
-      g.Draw
+      Rectangle landerRect = new Rectangle();
+      landerRect.Width = 10 * deltaX;
+      landerRect.Height = padTop;
+      //landerRect.Location = new Point(50, deltaY * mDisplayArgs.height - landerRect.Height - padBottom);
+      landerRect.Location = new Point((int)mDisplayArgs.xPosition * deltaX + centerWidth - landerRect.Width / 2,
+                                      (100 - (int)mDisplayArgs.height) * deltaY - landerRect.Height - padBottom);
+      g.DrawImage(mLanderImage, landerRect);
 
-      // Draw rows.
-      for (int h_dex = 0; h_dex < ROWS; h_dex++) {
-        g.DrawLine(p_lines, new Point(PAD_W, h_dex * delta_h + PAD_H),
-                            new Point((COLS - 1) * delta_w + PAD_W, h_dex * delta_h + PAD_H));
-      }
+      Rectangle platformRect = new Rectangle();
+      platformRect.Width = deltaX;
+      platformRect.Height = padBottom;
 
-      // Draw cols
-      for (int w_dex = 0; w_dex < COLS; w_dex++) {
-        g.DrawLine(p_lines, new Point(w_dex * delta_w + PAD_W, PAD_H),
-                            new Point(w_dex * delta_w + PAD_W, (ROWS - 1) * delta_h + PAD_H));
+      for (int i = -2; i < 2; i++) {
+        platformRect.Location = new Point(centerWidth + i * deltaX, height - platformRect.Height - padBottom);
+        g.DrawImage(mLanderPlatformBlock, platformRect);
       }
+    }
   }
 }
