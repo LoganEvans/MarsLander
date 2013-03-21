@@ -4,10 +4,20 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 
 namespace MarsLander {
   public enum landedT { landed, flying, crashed };
+
+  public class UpdateTriggeredEventArgs : EventArgs {
+    public double height {get; set;}
+    public double yVelocity {get; set;}
+    public double xVelocity {get; set;}
+    public double xPosition {get; set;}
+    public double fuel {get; set;}
+    public landedT status {get; set;}
+  }
 
   class LanderBase {
     private double mAcceleration = 2.0;  // but should be varied
@@ -30,7 +40,6 @@ namespace MarsLander {
     double mXPosition;
     double mYVelocity;
     double mXVelocity;
-    landedT mLanded;  // 0- no, 1- yes, 2- crashed
     double mFuel;
     double mBurn;
     double mThrust;
@@ -51,7 +60,6 @@ namespace MarsLander {
       mYVelocity = yVelocity;
       mXPosition = 0.0;
       mXVelocity = 0.0;
-      mLanded = 0;  // haven't landed yet
       mFuel = 100.0;   // starting fuel
       mAcceleration = 2.0;
       mWind = wind;
@@ -121,12 +129,23 @@ namespace MarsLander {
   }
 
   class Program {
+    public static void UpdateTriggeredEventHandler_print(object sender, UpdateTriggeredEventArgs args) {
+      Console.WriteLine("Height: " + args.height + " Y-Velocity: " + args.yVelocity +
+                        " Position: " + args.xPosition + " X-Velocity: " + args.xVelocity + " Fuel: " + args.fuel);
+    }
+
+    [STAThread]
     static void Main(string[] args) {
       LanderBase lander = new LanderBase();
       Display display = new Display();
-      lander.UpdateTriggered += display.UpdateTriggeredEventHandler_print;
+      lander.UpdateTriggered += UpdateTriggeredEventHandler_print;
+
+      Thread displayThread = new Thread((ThreadStart)delegate {
+            Application.EnableVisualStyles();
+            System.Windows.Forms.Application.Run(display);
+        });
+      displayThread.Start();
       lander.simulate(display : true);
-      Console.Read();
     }
   }
 }
