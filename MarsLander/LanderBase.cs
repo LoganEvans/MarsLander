@@ -19,7 +19,7 @@ namespace MarsLander {
     public landedT status {get; set;}
   }
 
-  class LanderBase {
+  public class LanderBase {
     private double mAcceleration = 2.0;  // but should be varied
     private double mWind;
     private const double MAX_SAFE_LANDING_SPEED = 4.0;
@@ -110,7 +110,7 @@ namespace MarsLander {
       mThrust = 0;
     }
 
-    public void simulate(bool display) {
+    public double simulate(bool display) {
       do {
         update();
 
@@ -129,7 +129,23 @@ namespace MarsLander {
 
       } while (!isLanded());
 
-      Console.WriteLine("Status: " + getStatus());
+      Console.WriteLine("Status: " + getStatus() + " | " + getDistance());
+
+      return getDistance();
+    }
+
+    public double getDistance() {
+      double score = 0.0;
+
+      if (mYVelocity > MAX_SAFE_LANDING_SPEED) {
+        score += mYVelocity - MAX_SAFE_LANDING_SPEED;
+      }
+
+      if (Math.Abs(mXPosition) > MAX_SAFE_X) {
+        score += Math.Abs(mXPosition) - MAX_SAFE_X;
+      }
+
+      return score;
     }
   }
 }

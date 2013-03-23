@@ -13,9 +13,30 @@ namespace MarsLander {
                         " Position: " + args.xPosition + " X-Velocity: " + args.xVelocity + " Fuel: " + args.fuel);
     }
 
+    public static NeuralLander localSearch() {
+      NeuralLander champ = new NeuralLander();
+      NeuralLander chump;
+      double champScore = champ.simulate(false);
+      double chumpScore;
+      
+      while (champScore > 0.0) {
+        chump = new NeuralLander(champ);
+        chump.mutate();
+        chumpScore = chump.simulate(false);
+        Console.WriteLine("champScore: " + champScore + ", chumpScore: " + chumpScore);
+
+        if (chumpScore < champScore) {
+          champ = chump;
+          champScore = chumpScore;
+        }
+      }
+
+      return champ;
+    }
+
     [STAThread]
     static void Main(string[] args) {
-      NeuralLander lander = new NeuralLander();
+      NeuralLander lander = localSearch();
       /*lander.testIt();
       Console.ReadKey();
       */

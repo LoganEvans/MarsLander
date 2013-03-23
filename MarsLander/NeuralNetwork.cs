@@ -22,7 +22,7 @@ namespace MarsLander {
     }
   }
 
-  class NeuralLander : LanderBase {
+  public class NeuralLander : LanderBase {
     private NeuralVector mInputs = null;
     private NeuralConnection mInputsToHidden = null;
     private NeuralVector mHiddenLayer = null;
@@ -30,9 +30,9 @@ namespace MarsLander {
     private NeuralVector mOutputs = null;
     private const int numInputs = 6;
     private const int numOutputs = 2;
+    private static Random mRand = null;
 
     public NeuralLander() : base() {
-      Console.WriteLine(" > NeuralLander()");
       mInputs = new NeuralVector(numInputs);
       mInputsToHidden = new NeuralConnection(numInputs, numInputs);
       mHiddenLayer = new NeuralVector(numInputs);
@@ -41,7 +41,6 @@ namespace MarsLander {
     }
 
     public NeuralLander(double yVelocity, double wind) : base(yVelocity, wind) {
-      Console.WriteLine(" > NeuralLander(double, double)");
       mInputs = new NeuralVector(numInputs);
       mInputsToHidden = new NeuralConnection(numInputs, numInputs);
       mHiddenLayer = new NeuralVector(numInputs);
@@ -50,7 +49,14 @@ namespace MarsLander {
     }
 
     public NeuralLander(NeuralLander copyFrom) : base(copyFrom) {
-      mInputs = copyFrom.mInputs.Clone();
+      mInputs = new NeuralVector(copyFrom.mInputs);
+      Console.WriteLine("first:" + mInputs.ToString());
+      Console.WriteLine("second:" + copyFrom.mInputs.ToString());
+      Console.ReadKey();
+      mInputsToHidden = new NeuralConnection(copyFrom.mInputsToHidden);
+      mHiddenLayer = new NeuralVector(copyFrom.mHiddenLayer);
+      mHiddenToOutputs = new NeuralConnection(copyFrom.mHiddenToOutputs);
+      mOutputs = new NeuralVector(copyFrom.mOutputs);
     }
 
     public void testIt() {
@@ -96,10 +102,19 @@ namespace MarsLander {
     }
 
     public void mutate() {
+    //if (mRand == null) {
+    //  mRand = new Random();
+    //}
+
+      mInputs.mutateActivationConsts();
+      mHiddenToOutputs.mutateWeights();
+      mHiddenLayer.mutateActivationConsts();
+      mHiddenToOutputs.mutateWeights();
+      mOutputs.mutateActivationConsts();
     }
   }
 
-  class NeuralVector {
+  public class NeuralVector {
     private double[] mVector;
     private double[] mActivationConsts;
     private static Random mRand = null;
@@ -114,8 +129,14 @@ namespace MarsLander {
       mActivationConsts = new double[mVector.Length];
     }
 
-    public NeuralVector Clone() {
-      ////////TODO
+    public NeuralVector(NeuralVector copyFrom) {
+      mVector = new double[copyFrom.mVector.Length];
+      mActivationConsts = new double[copyFrom.mActivationConsts.Length];
+
+      for (int i = 0; i < mVector.Length; i++) {
+        mVector[i] = copyFrom.mVector[i];
+        mActivationConsts[i] = copyFrom.mActivationConsts[i];
+      }
     }
 
     public void setInputs(double[] inputs) {
@@ -164,7 +185,7 @@ namespace MarsLander {
     }
   }
 
-  class NeuralConnection {
+  public class NeuralConnection {
     private double[,] mWeights;
     private Random mRand = null;
 
@@ -176,6 +197,16 @@ namespace MarsLander {
       mWeights = weights;
     }
 
+    public NeuralConnection(NeuralConnection copyFrom) {
+      mWeights = new double[copyFrom.getRows(), copyFrom.getCols()];
+
+      for (int row_dex = 0; row_dex < getRows(); row_dex++) {
+        for (int col_dex = 0; col_dex < getCols(); col_dex++) {
+          mWeights[row_dex, col_dex] = copyFrom.mWeights[row_dex, col_dex];
+        }
+      }
+    }
+
     public int getRows() {
       return mWeights.GetLength(0);
     }
@@ -185,24 +216,14 @@ namespace MarsLander {
     }
 
     public static double[] operator *(NeuralVector vector, NeuralConnection matrix) {
-      Console.WriteLine(" > operator *");
       double[] retval = new double[matrix.getCols()];
-
-      Console.WriteLine("(op) vector: 1x" + vector.getCols() + ", matrix: " + matrix.getRows() + "x" + matrix.getCols() + " ret: 1x" + retval.Length);
 
       for (int finalCol = 0; finalCol < matrix.getCols(); finalCol++) {
         for (int offset = 0; offset < matrix.getRows(); offset++) {
-          Console.WriteLine("(op) finalCol: " + finalCol + ", offset: " + offset + ", vector.getCols(): " + vector.getCols());
-          Console.WriteLine("(op) [" + finalCol + "] " + "vect: " + vector.at(offset) + ", matr: " + matrix.at(offset, finalCol));
-          //retval[finalCol] += vector.at(offset) * matrix.at(offset, finalCol);
+          retval[finalCol] += vector.at(offset) * matrix.at(offset, finalCol);
         }
       }
 
-      for (int i = 0; i < retval.Length; i++) {
-        Console.WriteLine("(op)??? " + retval[i]);
-      }
-
-      Console.WriteLine(" < operator *() -- retval.Length: " + retval.Length);
       return retval;
     }
 
