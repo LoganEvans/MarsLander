@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace MarsLander {
-  public class Main {
+  public class PinkyLander {
     public static void UpdateTriggeredEventHandler_print(object sender, UpdateTriggeredEventArgs args) {
       Console.WriteLine("Height: " + args.height + " Y-Velocity: " + args.yVelocity +
                         " Position: " + args.xPosition + " X-Velocity: " + args.xVelocity + " Fuel: " + args.fuel);
@@ -15,7 +15,14 @@ namespace MarsLander {
 
     [STAThread]
     static void Main(string[] args) {
-      LanderBase lander = new LanderBase();
+      NeuralLander lander = new NeuralLander();
+      /*lander.testIt();
+      Console.ReadKey();
+      */
+      for (int i = 0; i < 1000; i++) {
+        lander.mutate();
+      }
+
       Display display = new Display();
       lander.UpdateTriggered += UpdateTriggeredEventHandler_print;
       lander.UpdateTriggered += display.UpdateTriggeredEventHandler_paint;

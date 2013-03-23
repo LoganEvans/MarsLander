@@ -36,13 +36,13 @@ namespace MarsLander {
       }
     }
 
-    double mHeight;
-    double mXPosition;
-    double mYVelocity;
-    double mXVelocity;
-    double mFuel;
-    double mBurn;
-    double mThrust;
+    protected double mHeight;
+    protected double mXPosition;
+    protected double mYVelocity;
+    protected double mXVelocity;
+    protected double mFuel;
+    protected double mBurn;
+    protected double mThrust;
 
     public LanderBase() {
       Random rand = new Random();
@@ -53,6 +53,10 @@ namespace MarsLander {
 
     public LanderBase(double yVelocity, double wind) {
       initialize(yVelocity, wind);
+    }
+
+    public LanderBase(LanderBase copyFrom) {
+      initialize(copyFrom.mYVelocity, copyFrom.mWind);
     }
 
     private void initialize(double yVelocity, double wind) {
@@ -98,13 +102,10 @@ namespace MarsLander {
       mXPosition += mXVelocity + mWind;  // wind 
     }
 
-    public void draw() {
-    }
-
     // calculates the burn - vertical adjustments
     // and the thrust - horizontal adjustments
     // both use fuel
-    public void control() {
+    public virtual void control() {
       mBurn = 1.0;
       mThrust = 0;
     }
