@@ -41,31 +41,21 @@ namespace MarsLander {
     protected double mYVelocity;
     protected double mXVelocity;
     protected double mFuel;
-    protected double mBurn;
-    protected double mThrust;
 
     public LanderBase() {
-      Random rand = new Random();
-      double wind = 0.2 * (rand.NextDouble() - 0.5);  // random wind 
-      double yVelocity = 10.0 * rand.NextDouble();  // random starting velocity
-      initialize(yVelocity, wind);
-    }
-
-    public LanderBase(double yVelocity, double wind) {
-      initialize(yVelocity, wind);
     }
 
     public LanderBase(LanderBase copyFrom) {
-      initialize(copyFrom.mYVelocity, copyFrom.mWind);
+      initialize(copyFrom.mYVelocity, copyFrom.mWind, copyFrom.mAcceleration);
     }
 
-    private void initialize(double yVelocity, double wind) {
+    private void initialize(double yVelocity, double wind, double acceleration) {
       mHeight = 100.0;  // starting height
       mYVelocity = yVelocity;
       mXPosition = 0.0;
       mXVelocity = 0.0;
       mFuel = 100.0;   // starting fuel
-      mAcceleration = 2.0;
+      mAcceleration = acceleration;
       mWind = wind;
     }
 
@@ -86,17 +76,20 @@ namespace MarsLander {
     // update the lander's altitude 
     public void update() {
       mYVelocity += mAcceleration;  // apply acceleration
-      control();  // calculate burn and thrust
-      if (mFuel < mBurn) {  // if insuficient fuel, use the rest for burn
-        mBurn = mFuel;
+      Tuple<double, double> controlVals = control();  // calculate burn and thrust
+      double burn = controlVals.Item1;
+      double thrust = controlVals.Item2;
+
+      if (mFuel < burn) {  // if insuficient fuel, use the rest for burn
+        burn = mFuel;
       }
-      mFuel -= Math.Abs(mBurn);  // subtract fuel
-      mYVelocity -= mBurn;  // apply burn 
-      if (mFuel < mThrust) {  // if insuficient fuel, use the rest for thrust
-        mThrust = mFuel;
+      mFuel -= Math.Abs(burn);  // subtract fuel
+      mYVelocity -= burn;  // apply burn 
+      if (mFuel < thrust) {  // if insuficient fuel, use the rest for thrust
+        thrust = mFuel;
       }
-      mFuel -= Math.Abs(mThrust);  // subtract fuel
-      mXVelocity -= mThrust;    // apply thrust
+      mFuel -= Math.Abs(thrust);  // subtract fuel
+      mXVelocity -= thrust;    // apply thrust
 
       mHeight -= mYVelocity;  // subtract because moving down
       mXPosition += mXVelocity + mWind;  // wind 
@@ -105,12 +98,20 @@ namespace MarsLander {
     // calculates the burn - vertical adjustments
     // and the thrust - horizontal adjustments
     // both use fuel
-    public virtual void control() {
-      mBurn = 1.0;
-      mThrust = 0;
+    public virtual Tuple<double, double> control() {
+      double burn = 1.0;
+      double thrust = 0.0;
+      return Tuple.Create(burn, thrust);
     }
 
-    public double simulate(bool display) {
+    public double simulate(bool display, bool randomize, double yVelocity = 0.0, double wind = 0.0, double acceleration = 1.0) {
+      if (randomize) {
+        Random rand = new Random();
+        initialize(rand.NextDouble() * 10.0, (rand.NextDouble() - 0.5) * 0.2, rand.NextDouble() * 2.0 + 1.0);
+      } else {
+        initialize(yVelocity, wind, acceleration);
+      }
+
       do {
         update();
 
@@ -129,7 +130,9 @@ namespace MarsLander {
 
       } while (!isLanded());
 
-      Console.WriteLine("Status: " + getStatus() + " | " + getDistance());
+      if (display) {
+        Console.WriteLine("Status: " + getStatus() + " | " + getDistance());
+      }
 
       return getDistance();
     }

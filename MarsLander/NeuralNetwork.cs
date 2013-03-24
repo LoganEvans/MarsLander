@@ -38,41 +38,30 @@ namespace MarsLander {
       mHiddenLayer = new NeuralVector(numInputs);
       mHiddenToOutputs = new NeuralConnection(numInputs, numOutputs);
       mOutputs = new NeuralVector(numOutputs);
-    }
 
-    public NeuralLander(double yVelocity, double wind) : base(yVelocity, wind) {
-      mInputs = new NeuralVector(numInputs);
-      mInputsToHidden = new NeuralConnection(numInputs, numInputs);
-      mHiddenLayer = new NeuralVector(numInputs);
-      mHiddenToOutputs = new NeuralConnection(numInputs, numOutputs);
-      mOutputs = new NeuralVector(numOutputs);
+      for (int i = 0; i < 100; i++) {
+        mutate();
+      }
     }
 
     public NeuralLander(NeuralLander copyFrom) : base(copyFrom) {
       mInputs = new NeuralVector(copyFrom.mInputs);
-      Console.WriteLine("first:" + mInputs.ToString());
-      Console.WriteLine("second:" + copyFrom.mInputs.ToString());
-      Console.ReadKey();
       mInputsToHidden = new NeuralConnection(copyFrom.mInputsToHidden);
       mHiddenLayer = new NeuralVector(copyFrom.mHiddenLayer);
       mHiddenToOutputs = new NeuralConnection(copyFrom.mHiddenToOutputs);
       mOutputs = new NeuralVector(copyFrom.mOutputs);
     }
 
-    public void testIt() {
-      NeuralVector nv = new NeuralVector(new double[] {1, 2, 3, 4, 5, 6});
-      NeuralConnection nl = new NeuralConnection(new double[,] {{1, 10},
-                                                                {2, 20},
-                                                                {3, 30},
-                                                                {4, 40},
-                                                                {5, 50},
-                                                                {6, 60}});
-      
-      NeuralVector cap = new NeuralVector(2);
-      Console.WriteLine("nv:\n" + nv.ToString());
-      Console.WriteLine("nl:\n" + nl.ToString());
-      cap.setInputs(nv * nl);
-      Console.WriteLine("cap:\n" + cap.ToString());
+    public override string ToString() {
+      string retval = "";
+
+      retval += "mInputs:\n" + mInputs.ToString();
+      retval += "mInputsToHidden:\n" + mInputsToHidden.ToString();
+      retval += "mHiddenLayer:\n" + mHiddenLayer.ToString();
+      retval += "mHiddenToOutputs:\n" + mHiddenToOutputs.ToString();
+      retval += "mOutputs:\n" + mOutputs.ToString();
+
+      return retval;
     }
 
     public double[] getInputs() {
@@ -87,7 +76,7 @@ namespace MarsLander {
       return retval;
     }
 
-    public override void control() {
+    public override Tuple<double, double> control() {
       mInputs.setInputs(getInputs());
       mInputs.setScalarInput();
       mInputs.applyActivation();
@@ -97,17 +86,16 @@ namespace MarsLander {
       mOutputs.setInputs(mHiddenLayer * mHiddenToOutputs);
       mOutputs.applyActivation();
 
-      mBurn = Math.Abs(mOutputs.at(0));
-      mThrust = mOutputs.at(1);
+      double burn, thrust;
+      burn = Math.Abs(mOutputs.at(0)) * 10.0;
+      thrust = mOutputs.at(1) * 10.0;
+
+      return Tuple.Create(burn, thrust);
     }
 
     public void mutate() {
-    //if (mRand == null) {
-    //  mRand = new Random();
-    //}
-
       mInputs.mutateActivationConsts();
-      mHiddenToOutputs.mutateWeights();
+      mInputsToHidden.mutateWeights();
       mHiddenLayer.mutateActivationConsts();
       mHiddenToOutputs.mutateWeights();
       mOutputs.mutateActivationConsts();
@@ -163,7 +151,9 @@ namespace MarsLander {
         mRand = new Random();
       }
       int selected = mRand.Next(getNumMutatable());
-      mActivationConsts[selected] += Utilities.getGaussian();
+      for (int i = 0; i < mActivationConsts.Length; i++) {
+        mActivationConsts[i] += Utilities.getGaussian();
+      }
     }
 
     public int getNumMutatable() {
@@ -248,7 +238,11 @@ namespace MarsLander {
       }
       int selectedRow = mRand.Next(mWeights.GetLength(0));
       int selectedCol = mRand.Next(mWeights.GetLength(1));
-      mWeights[selectedRow, selectedCol] += Utilities.getGaussian();
+      for (int row_dex = 0; row_dex < mWeights.GetLength(0); row_dex++) {
+        for (int col_dex = 0; col_dex < mWeights.GetLength(1); col_dex++) {
+          mWeights[row_dex, col_dex] += Utilities.getGaussian();
+        }
+      }
     }
 
     public int getNumMutatable() {
