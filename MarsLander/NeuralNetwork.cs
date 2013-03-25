@@ -24,30 +24,41 @@ namespace MarsLander {
 
   public class NeuralLander : LanderBase {
     private NeuralVector mInputs = null;
-    private NeuralConnection mInputsToHidden = null;
-    private NeuralVector mHiddenLayer = null;
+    private NeuralConnection[] mHiddenConnections = null;
+    private NeuralVector[] mHiddenLayers = null;
     private NeuralConnection mHiddenToOutputs = null;
     private NeuralVector mOutputs = null;
-    private const int numInputs = 6;
+    private readonly int mNumHiddenLayers = 2;
+    private const int numInputs = 8;
     private const int numOutputs = 2;
     private static Random mRand = null;
 
     public NeuralLander() : base() {
       mInputs = new NeuralVector(numInputs);
-      mInputsToHidden = new NeuralConnection(numInputs, numInputs);
-      mHiddenLayer = new NeuralVector(numInputs);
+
+      mHiddenConnections = new NeuralConnection[mNumHiddenLayers];
+      mHiddenLayers = new NeuralVector[mNumHiddenLayers];
+      for (int i = 0; i < mNumHiddenLayers; i++) {
+        mHiddenConnections[i] = new NeuralConnection(numInputs, numInputs);
+        mHiddenLayers[i] = new NeuralVector(numInputs);
+      }
+
       mHiddenToOutputs = new NeuralConnection(numInputs, numOutputs);
       mOutputs = new NeuralVector(numOutputs);
 
-      for (int i = 0; i < 100; i++) {
-        mutate();
-      }
+      randomize();
     }
 
     public NeuralLander(NeuralLander copyFrom) : base(copyFrom) {
       mInputs = new NeuralVector(copyFrom.mInputs);
-      mInputsToHidden = new NeuralConnection(copyFrom.mInputsToHidden);
-      mHiddenLayer = new NeuralVector(copyFrom.mHiddenLayer);
+
+      mHiddenConnections = new NeuralConnection[mNumHiddenLayers];
+      mHiddenLayers = new NeuralVector[mNumHiddenLayers];
+      for (int i = 0; i < mNumHiddenLayers; i++) {
+        mHiddenConnections[i] = new NeuralConnection(copyFrom.mHiddenConnections[i]);
+        mHiddenLayers[i] = new NeuralVector(copyFrom.mHiddenLayers[i]);
+      }
+
       mHiddenToOutputs = new NeuralConnection(copyFrom.mHiddenToOutputs);
       mOutputs = new NeuralVector(copyFrom.mOutputs);
     }
@@ -56,8 +67,11 @@ namespace MarsLander {
       string retval = "";
 
       retval += "mInputs:\n" + mInputs.ToString();
-      retval += "mInputsToHidden:\n" + mInputsToHidden.ToString();
-      retval += "mHiddenLayer:\n" + mHiddenLayer.ToString();
+      for (int i = 0; i < mNumHiddenLayers; i++) {
+        retval += "mHiddenConnections[" + i + "]:\n" + mHiddenConnections[i].ToString();
+        retval += "mHiddenLayers[" + i + "]:\n" + mHiddenLayers[i].ToString();
+      }
+
       retval += "mHiddenToOutputs:\n" + mHiddenToOutputs.ToString();
       retval += "mOutputs:\n" + mOutputs.ToString();
 
@@ -71,19 +85,32 @@ namespace MarsLander {
       retval[2] = mXVelocity;
       retval[3] = mYVelocity;
       retval[4] = mFuel;
-      retval[5] = 1.0;
+      retval[5] = mWind;
+      retval[6] = mAcceleration;
+      retval[7] = 1.0;
+    //retval[0] = mYVelocity;
+    //retval[1] = mWind;
+    //retval[2] = 1.0;
 
       return retval;
     }
 
     public override Tuple<double, double> control() {
       mInputs.setInputs(getInputs());
-      mInputs.setScalarInput();
       mInputs.applyActivation();
-      mHiddenLayer.setInputs(mInputs * mInputsToHidden);
-      mHiddenLayer.setScalarInput();
-      mHiddenLayer.applyActivation();
-      mOutputs.setInputs(mHiddenLayer * mHiddenToOutputs);
+      mInputs.setScalarInput();
+
+      mHiddenLayers[0].setInputs(mInputs * mHiddenConnections[0]);
+      mHiddenLayers[0].applyActivation();
+      mHiddenLayers[0].setScalarInput();
+
+      for (int i = 1; i < mNumHiddenLayers; i++) {
+        mHiddenLayers[i].setInputs(mHiddenLayers[i - 1] * mHiddenConnections[i - 1]);
+        mHiddenLayers[i].applyActivation();
+        mHiddenLayers[i].setScalarInput();
+      }
+
+      mOutputs.setInputs(mHiddenLayers[mNumHiddenLayers - 1] * mHiddenToOutputs);
       mOutputs.applyActivation();
 
       double burn, thrust;
@@ -93,12 +120,71 @@ namespace MarsLander {
       return Tuple.Create(burn, thrust);
     }
 
+    public void randomize() {
+      mInputs.randomize();
+      for (int i = 0; i < mNumHiddenLayers; i++) {
+        mHiddenLayers[i].randomize();
+        mHiddenConnections[i].randomize();
+      }
+
+      mHiddenToOutputs.randomize();
+      mOutputs.randomize();
+    }
+
     public void mutate() {
-      mInputs.mutateActivationConsts();
-      mInputsToHidden.mutateWeights();
-      mHiddenLayer.mutateActivationConsts();
-      mHiddenToOutputs.mutateWeights();
-      mOutputs.mutateActivationConsts();
+      int numMutatable = 0, selected;
+      numMutatable += mInputs.getNumMutatable();
+      for (int i = 0; i < mNumHiddenLayers; i++) {
+        numMutatable += mHiddenLayers[i].getNumMutatable();
+        numMutatable += mHiddenConnections[i].getNumMutatable();
+      }
+
+      numMutatable += mHiddenToOutputs.getNumMutatable();
+      numMutatable += mOutputs.getNumMutatable();
+
+      if (mRand == null) {
+        mRand = new Random();
+      }
+
+      selected = mRand.Next(numMutatable);
+
+      if (selected < mInputs.getNumMutatable()) {
+        mInputs.mutate(selected);
+        return;
+      } else {
+        selected -= mInputs.getNumMutatable();
+      }
+
+      for (int i = 0; i < mNumHiddenLayers; i++) {
+        if (selected < mHiddenConnections[i].getNumMutatable()) {
+          mHiddenConnections[i].mutate(selected);
+          return;
+        } else {
+          selected -= mHiddenConnections[i].getNumMutatable();
+        }
+
+        if (selected < mHiddenLayers[i].getNumMutatable()) {
+          mHiddenLayers[i].mutate(selected);
+          return;
+        } else {
+          selected -= mHiddenLayers[i].getNumMutatable();
+        }
+      }
+
+      if (selected < mHiddenToOutputs.getNumMutatable()) {
+        mHiddenToOutputs.mutate(selected);
+        return;
+      } else {
+        selected -= mHiddenToOutputs.getNumMutatable();
+      }
+
+      if (selected < mOutputs.getNumMutatable()) {
+        mOutputs.mutate(selected);
+        return;
+      } else {
+        Console.WriteLine("Error on selected...");
+        Console.ReadKey();
+      }
     }
   }
 
@@ -147,12 +233,18 @@ namespace MarsLander {
     }
 
     public void mutateActivationConsts() {
-      if (mRand == null) {
-        mRand = new Random();
-      }
-      int selected = mRand.Next(getNumMutatable());
       for (int i = 0; i < mActivationConsts.Length; i++) {
         mActivationConsts[i] += Utilities.getGaussian();
+      }
+    }
+
+    public void mutate(int activationConst) {
+      mActivationConsts[activationConst] += Utilities.getGaussian();
+    }
+
+    public void randomize() {
+      for (int i = 0; i < mActivationConsts.Length; i++) {
+        mActivationConsts[i] += 5.0 * Utilities.getGaussian();
       }
     }
 
@@ -166,7 +258,7 @@ namespace MarsLander {
 
     public void applyActivation() {
       for (int i = 0; i < mVector.Length; i++) {
-        mVector[i] = 1.0 / (1.0 + Math.Exp(-1 * mVector[i] * mActivationConsts[i]));
+        mVector[i] = 2.0 * (1.0 / (1.0 + Math.Exp(-1 * mVector[i] * mActivationConsts[i]))) - 1;
       }
     }
 
@@ -241,6 +333,18 @@ namespace MarsLander {
       for (int row_dex = 0; row_dex < mWeights.GetLength(0); row_dex++) {
         for (int col_dex = 0; col_dex < mWeights.GetLength(1); col_dex++) {
           mWeights[row_dex, col_dex] += Utilities.getGaussian();
+        }
+      }
+    }
+
+    public void mutate(int index) {
+      mWeights[index / mWeights.GetLength(1), index % mWeights.GetLength(1)] += Utilities.getGaussian();
+    }
+
+    public void randomize() {
+      for (int row_dex = 0; row_dex < mWeights.GetLength(0); row_dex++) {
+        for (int col_dex = 0; col_dex < mWeights.GetLength(1); col_dex++) {
+          mWeights[row_dex, col_dex] += 5.0 * Utilities.getGaussian();
         }
       }
     }

@@ -20,8 +20,8 @@ namespace MarsLander {
   }
 
   public class LanderBase {
-    private double mAcceleration = 2.0;  // but should be varied
-    private double mWind;
+    protected double mAcceleration = 2.0;  // but should be varied
+    protected double mWind;
     private const double MAX_SAFE_LANDING_SPEED = 4.0;
     private const double MIN_SAFE_X = -0.2;
     private const double MAX_SAFE_X = 0.2;
@@ -80,12 +80,12 @@ namespace MarsLander {
       double burn = controlVals.Item1;
       double thrust = controlVals.Item2;
 
-      if (mFuel < burn) {  // if insuficient fuel, use the rest for burn
+      if (mFuel < Math.Abs(burn)) {  // if insuficient fuel, use the rest for burn
         burn = mFuel;
       }
       mFuel -= Math.Abs(burn);  // subtract fuel
       mYVelocity -= burn;  // apply burn 
-      if (mFuel < thrust) {  // if insuficient fuel, use the rest for thrust
+      if (mFuel < Math.Abs(thrust)) {  // if insuficient fuel, use the rest for thrust
         thrust = mFuel;
       }
       mFuel -= Math.Abs(thrust);  // subtract fuel
@@ -104,7 +104,7 @@ namespace MarsLander {
       return Tuple.Create(burn, thrust);
     }
 
-    public double simulate(bool display, bool randomize, double yVelocity = 0.0, double wind = 0.0, double acceleration = 1.0) {
+    public double? simulate(bool display, bool randomize, double yVelocity = 0.0, double wind = 0.0, double acceleration = 1.0) {
       if (randomize) {
         Random rand = new Random();
         initialize(rand.NextDouble() * 10.0, (rand.NextDouble() - 0.5) * 0.2, rand.NextDouble() * 2.0 + 1.0);
@@ -134,7 +134,11 @@ namespace MarsLander {
         Console.WriteLine("Status: " + getStatus() + " | " + getDistance());
       }
 
-      return getDistance();
+      if (getStatus() == landedT.landed) {
+        return null;
+      } else {
+        return getDistance();
+      }
     }
 
     public double getDistance() {
