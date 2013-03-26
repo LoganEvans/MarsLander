@@ -109,7 +109,7 @@ namespace MarsLander {
     public double? simulate(bool display, bool randomize, double yVelocity = 0.0, double wind = 0.0, double acceleration = 1.0) {
       if (randomize) {
         Random rand = new Random();
-        initialize(rand.NextDouble() * 10.0, (rand.NextDouble() - 0.5) * 0.2, rand.NextDouble() * 2.0 + 1.0);
+        initialize(rand.NextDouble() * 10.0, rand.NextDouble() * 0.2, rand.NextDouble() * 2.0 + 1.0);
       } else {
         initialize(yVelocity, wind, acceleration);
       }

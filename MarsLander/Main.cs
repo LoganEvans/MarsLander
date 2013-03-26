@@ -13,8 +13,8 @@ namespace MarsLander {
 
     public static void UpdateTriggeredEventHandler_print(object sender, UpdateTriggeredEventArgs args) {
       sLog.WriteLine("Height: " + args.height + " Y-Velocity: " + args.yVelocity +
-                        " Position: " + args.xPosition + " X-Velocity: " + args.xVelocity + " Fuel: " + args.fuel +
-                        " Wind: " + args.wind + " Acceleration: " + args.acceleration);
+                     " Position: " + args.xPosition + " X-Velocity: " + args.xVelocity + " Fuel: " + args.fuel +
+                     " Wind: " + args.wind + " Acceleration: " + args.acceleration);
     }
 
     public static List<Tuple<double, double, double>> simParams = null;
@@ -22,9 +22,9 @@ namespace MarsLander {
     public static void initializeSimParams() {
       simParams = new List<Tuple<double, double, double>>();
 
-      for (double yVelocity = 0.0; yVelocity <= 10.0; yVelocity += 2.0) {
-        for (double wind = 0.0; wind <= 0.2; wind += 0.1) {
-          for (double acceleration = 1.0; acceleration <= 3.0; acceleration += 1.0) {
+      for (double yVelocity = 0.0; yVelocity <= 10.005; yVelocity += 2.0) {
+        for (double wind = 0.0; wind <= 0.205; wind += 0.1) {
+          for (double acceleration = 1.0; acceleration <= 3.005; acceleration += 1.0) {
             simParams.Add(Tuple.Create(yVelocity, wind, acceleration));
           }
         }
@@ -39,15 +39,12 @@ namespace MarsLander {
       double score = 0.0;
       double? scoreToAdd;
       int lands = 0;
-      //int order = 1;
       foreach (Tuple<double, double, double> param in simParams) {
         scoreToAdd = lander.simulate(false, false, param.Item1, param.Item2, param.Item3);
         if (scoreToAdd == null) {
           lands += 1;
         } else {
-          score += (double)scoreToAdd; //  *(order);
-          //order++;
-          //score += 9.26;  // If all 54 are added, this will add 500 to the score.
+          score += (double)scoreToAdd;
         }
       }
       return Tuple.Create(score, lands);
@@ -65,6 +62,7 @@ namespace MarsLander {
 
         if (statsDummy.Item1 <= 100.0) {
           sLog.WriteLine("Before exhaustive: " + statsDummy);
+          Console.WriteLine("Before exhaustive: " + statsDummy);
 
           do {
             prevStatsDummy = statsDummy;
@@ -79,10 +77,12 @@ namespace MarsLander {
         }
 
         if (statsBest.Item1 == 0.0) {
-          sLog.WriteLine("Found a solution: " + statsBest);
+          sLog.WriteLine("Found a solution: " + statsBest + " at " + DateTime.Now);
           return best;
         }
-        sLog.WriteLine("Round: " + i + ", best: " + statsBest + ", testDummy: " + statsDummy);
+        sLog.WriteLine("Time: " + DateTime.Now + ", Round: " + i + ", best: " + statsBest + ", testDummy: " + statsDummy);
+        Console.WriteLine("Round: " + i + ", best: " + statsBest + ", testDummy: " + statsDummy);
+        sLog.Flush();
       }
       return best;
     }
@@ -91,7 +91,6 @@ namespace MarsLander {
       Random rand = new Random();
       for (int i = 0; i < indecies; i++) {
         lander = systematicLocalSearchOnIndex(lander, rand.Next() % lander.getNumMutatable());
-        //sLog.WriteLine("(" + i + ") stats: " + stats(lander));
       }
       return lander;
     }
@@ -99,7 +98,6 @@ namespace MarsLander {
     public static NeuralLander systematicLocalSearch(NeuralLander lander) {
       for (int i = 0; i < lander.getNumMutatable(); i++) {
         lander = systematicLocalSearchOnIndex(lander, i);
-        //sLog.WriteLine("stats: " + stats(lander));
       }
       return lander;
     }
@@ -246,19 +244,12 @@ namespace MarsLander {
       attempts = attemptsPerTry;
       while (attempts > 0) {
         attempts--;
-        //if (attempts % 20 == 0) {
-        //  sLog.WriteLine("Attempts left: " + attempts);
-        //}
-
         chump = new NeuralLander(champ);
-
         mutates = mutatesPerAttempt;
         while (mutates > 0) {
-          //sLog.WriteLine("Mutates left: " + mutates);
           mutates--;
           chump.mutate();
           chumpScore = stats(chump).Item1;
-          //chumpScore = chump.simulate(false, false, 3.0, 3.0, 3.0);
           if (chumpScore < champScore) {
             champ = chump;
             champScore = chumpScore;
@@ -284,19 +275,26 @@ namespace MarsLander {
     public static void finalTest(NeuralLander lander) {
       int trials = 0;
       int crashes = 0;
+      int crashesPerAcc;
+      int trialsPerAcc;
       double? result;
-      for (double yVelocity = 0.0; yVelocity <= 10.0; yVelocity += 1.0) {
-        for (double wind = 0.0; wind <= 0.2; wind += 0.1) {
-          for (double acceleration = 1.0; acceleration <= 3.0; acceleration += 0.1) {
+      for (double acceleration = 1.0; acceleration <= 3.05; acceleration += 0.1) {
+        crashesPerAcc = 0;
+        trialsPerAcc = 0;
+        for (double yVelocity = 0.0; yVelocity <= 10.05; yVelocity += 0.5) {
+          for (double wind = 0.0; wind <= 0.205; wind += 0.05) {
+            trialsPerAcc++;
             trials++;
-            sLog.WriteLine("yVelocity: " + yVelocity + ", wind: " + wind + ", acceleration: " + acceleration);
             result = lander.simulate(false, false, yVelocity, wind, acceleration);
-            sLog.WriteLine("Result: " + result);
             if (result != null) {
+              sLog.WriteLine("yVelocity: " + yVelocity + ", wind: " + wind + ", acceleration: " + acceleration + ", result: " + result);
               crashes++;
+              crashesPerAcc++;
             }
           }
         }
+
+        sLog.WriteLine("At acceleration: " + acceleration + " Trials: " + trialsPerAcc + " Crashes: " + crashesPerAcc);
       }
       sLog.WriteLine("Trials: " + trials + " Crashes: " + crashes);
     }
@@ -311,9 +309,8 @@ namespace MarsLander {
       Tuple<double, double, double> trial = Tuple.Create(10.0, -0.2, 3.0);
       Tuple<double, double, double> trial2 = Tuple.Create(1.0, 0.2, 3.0);
 
-      //lander = systematicLocalSearchRestarts(1000, 500);
-      //lander = systematicLocalSearchRestarts(10, 5);
-      //finalTest(lander);
+      lander = systematicLocalSearchRestarts(1000, 500);
+      finalTest(lander);
 
       Display display = new Display();
       lander.UpdateTriggered += UpdateTriggeredEventHandler_print;
