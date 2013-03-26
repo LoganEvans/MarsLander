@@ -131,8 +131,48 @@ namespace MarsLander {
       mOutputs.randomize();
     }
 
-    public void mutate() {
-      int numMutatable = 0, selected;
+    public void modify(int index, double augment) {
+      if (index < mInputs.getNumMutatable()) {
+        mInputs.modify(index, augment);
+        return;
+      } else {
+        index -= mInputs.getNumMutatable();
+      }
+
+      for (int i = 0; i < mNumHiddenLayers; i++) {
+        if (index < mHiddenConnections[i].getNumMutatable()) {
+          mHiddenConnections[i].modify(index, augment);
+          return;
+        } else {
+          index -= mHiddenConnections[i].getNumMutatable();
+        }
+
+        if (index < mHiddenLayers[i].getNumMutatable()) {
+          mHiddenLayers[i].modify(index, augment);
+          return;
+        } else {
+          index -= mHiddenLayers[i].getNumMutatable();
+        }
+      }
+
+      if (index < mHiddenToOutputs.getNumMutatable()) {
+        mHiddenToOutputs.modify(index, augment);
+        return;
+      } else {
+        index -= mHiddenToOutputs.getNumMutatable();
+      }
+
+      if (index < mOutputs.getNumMutatable()) {
+        mOutputs.modify(index, augment);
+        return;
+      } else {
+        Console.WriteLine("Error on selected...");
+        throw new Exception();
+      }
+    }
+
+    public int getNumMutatable() {
+      int numMutatable = 0;
       numMutatable += mInputs.getNumMutatable();
       for (int i = 0; i < mNumHiddenLayers; i++) {
         numMutatable += mHiddenLayers[i].getNumMutatable();
@@ -146,45 +186,14 @@ namespace MarsLander {
         mRand = new Random();
       }
 
-      selected = mRand.Next(numMutatable);
+      return numMutatable;
+    }
 
-      if (selected < mInputs.getNumMutatable()) {
-        mInputs.mutate(selected);
-        return;
-      } else {
-        selected -= mInputs.getNumMutatable();
+    public void mutate() {
+      if (mRand == null) {
+        mRand = new Random();
       }
-
-      for (int i = 0; i < mNumHiddenLayers; i++) {
-        if (selected < mHiddenConnections[i].getNumMutatable()) {
-          mHiddenConnections[i].mutate(selected);
-          return;
-        } else {
-          selected -= mHiddenConnections[i].getNumMutatable();
-        }
-
-        if (selected < mHiddenLayers[i].getNumMutatable()) {
-          mHiddenLayers[i].mutate(selected);
-          return;
-        } else {
-          selected -= mHiddenLayers[i].getNumMutatable();
-        }
-      }
-
-      if (selected < mHiddenToOutputs.getNumMutatable()) {
-        mHiddenToOutputs.mutate(selected);
-        return;
-      } else {
-        selected -= mHiddenToOutputs.getNumMutatable();
-      }
-
-      if (selected < mOutputs.getNumMutatable()) {
-        mOutputs.mutate(selected);
-        return;
-      } else {
-        Console.WriteLine("Error on selected...");
-        Console.ReadKey();
-      }
+      modify(mRand.Next(getNumMutatable()), Utilities.getGaussian());
     }
   }
 
@@ -246,6 +255,10 @@ namespace MarsLander {
       for (int i = 0; i < mActivationConsts.Length; i++) {
         mActivationConsts[i] += 5.0 * Utilities.getGaussian();
       }
+    }
+
+    public void modify(int index, double augment) {
+      mActivationConsts[index] += augment;
     }
 
     public int getNumMutatable() {
@@ -347,6 +360,10 @@ namespace MarsLander {
           mWeights[row_dex, col_dex] += 5.0 * Utilities.getGaussian();
         }
       }
+    }
+
+    public void modify(int index, double augment) {
+      mWeights[index / mWeights.GetLength(1), index % mWeights.GetLength(1)] += augment;
     }
 
     public int getNumMutatable() {

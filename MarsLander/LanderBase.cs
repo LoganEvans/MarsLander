@@ -16,6 +16,8 @@ namespace MarsLander {
     public double xVelocity {get; set;}
     public double xPosition {get; set;}
     public double fuel {get; set;}
+    public double wind { get; set; }
+    public double acceleration { get; set; }
     public landedT status {get; set;}
   }
 
@@ -123,6 +125,8 @@ namespace MarsLander {
           args.xPosition = mXPosition;
           args.fuel = mFuel;
           args.status = getStatus();
+          args.wind = mWind;
+          args.acceleration = mAcceleration;
           OnUpdateTriggered(args);
 
           Thread.Sleep(SLEEP_TIME_MS);

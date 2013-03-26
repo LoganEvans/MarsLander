@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -8,9 +9,12 @@ using System.Windows.Forms;
 
 namespace MarsLander {
   public class PinkyLander {
+    private static StreamWriter sLog;
+
     public static void UpdateTriggeredEventHandler_print(object sender, UpdateTriggeredEventArgs args) {
-      Console.WriteLine("Height: " + args.height + " Y-Velocity: " + args.yVelocity +
-                        " Position: " + args.xPosition + " X-Velocity: " + args.xVelocity + " Fuel: " + args.fuel);
+      sLog.WriteLine("Height: " + args.height + " Y-Velocity: " + args.yVelocity +
+                        " Position: " + args.xPosition + " X-Velocity: " + args.xVelocity + " Fuel: " + args.fuel +
+                        " Wind: " + args.wind + " Acceleration: " + args.acceleration);
     }
 
     public static List<Tuple<double, double, double>> simParams = null;
@@ -47,6 +51,96 @@ namespace MarsLander {
         }
       }
       return Tuple.Create(score, lands);
+    }
+
+    public static NeuralLander systematicLocalSearchRestarts(int trials, int indecies) {
+      NeuralLander testDummy;
+      NeuralLander best = new NeuralLander();
+      Tuple<double, int> statsDummy, statsBest, prevStatsDummy;
+      statsBest = stats(best);
+      for (int i = 0; i < trials; i++) {
+        testDummy = new NeuralLander();
+        testDummy = systematicLocalSearchRandomIndex(testDummy, indecies);
+        statsDummy = stats(testDummy);
+
+        if (statsDummy.Item1 <= 100.0) {
+          sLog.WriteLine("Before exhaustive: " + statsDummy);
+
+          do {
+            prevStatsDummy = statsDummy;
+            testDummy = systematicLocalSearch(testDummy);
+            statsDummy = stats(testDummy);
+          } while (prevStatsDummy.Item1 != statsDummy.Item1);
+        }
+
+        if (statsDummy.Item1 < statsBest.Item1) {
+          best = testDummy;
+          statsBest = statsDummy;
+        }
+
+        if (statsBest.Item1 == 0.0) {
+          sLog.WriteLine("Found a solution: " + statsBest);
+          return best;
+        }
+        sLog.WriteLine("Round: " + i + ", best: " + statsBest + ", testDummy: " + statsDummy);
+      }
+      return best;
+    }
+
+    public static NeuralLander systematicLocalSearchRandomIndex(NeuralLander lander, int indecies) {
+      Random rand = new Random();
+      for (int i = 0; i < indecies; i++) {
+        lander = systematicLocalSearchOnIndex(lander, rand.Next() % lander.getNumMutatable());
+        //sLog.WriteLine("(" + i + ") stats: " + stats(lander));
+      }
+      return lander;
+    }
+
+    public static NeuralLander systematicLocalSearch(NeuralLander lander) {
+      for (int i = 0; i < lander.getNumMutatable(); i++) {
+        lander = systematicLocalSearchOnIndex(lander, i);
+        //sLog.WriteLine("stats: " + stats(lander));
+      }
+      return lander;
+    }
+
+    public static NeuralLander systematicLocalSearchOnIndex(NeuralLander lander, int index) {
+      double deltaOrig = 1.0;
+      double delta = deltaOrig;
+      NeuralLander chump;
+      Tuple<double, int> statsChump, statsLander;
+      statsLander = stats(lander);
+      bool modified;
+
+      while (delta > deltaOrig / 16.0) {
+        modified = false;
+        chump = new NeuralLander(lander);
+        chump.modify(index, delta);
+        statsChump = stats(chump);
+
+        if (statsChump.Item1 < statsLander.Item1) {
+          lander = chump;
+          statsLander = statsChump;
+          modified = true;
+        }
+
+        if (!modified) {
+          chump.modify(index, -2 * delta);
+          statsChump = stats(chump);
+
+          if (statsChump.Item1 < statsLander.Item1) {
+            lander = chump;
+            statsLander = statsChump;
+            modified = true;
+          }
+        }
+
+        if (!modified) {
+          delta /= 2.0;
+        }
+      }
+
+      return lander;
     }
 
     public static NeuralLander searchForSolution(NeuralLander lander, Tuple<double, double, double> param, int tries = 10) {
@@ -105,7 +199,7 @@ namespace MarsLander {
       foreach (Tuple<double, double, double> param in sims) {
         retval = localSearch(retval);
         retval = searchForSolution(retval, param, tries);
-        Console.WriteLine("Score for " + param + ": " + stats(retval) + " ... " +
+        sLog.WriteLine("Score for " + param + ": " + stats(retval) + " ... " +
                           retval.simulate(false, false, param.Item1, param.Item2, param.Item3));
       }
       return retval;
@@ -118,7 +212,7 @@ namespace MarsLander {
       bestStats = stats(best);
 
       for (int i = 0; i < tries; i++) {
-        //Console.WriteLine("try: " + i);
+        //sLog.WriteLine("try: " + i);
         nextTry = new NeuralLander();
         nextTry = localSearch(nextTry, attempts, mutates);
         statistics = stats(nextTry);
@@ -126,7 +220,7 @@ namespace MarsLander {
         if (statistics.Item1 < bestStats.Item1) {
           best = nextTry;
           bestStats = statistics;
-          //Console.WriteLine("Best so far: " + bestStats);
+          //sLog.WriteLine("Best so far: " + bestStats);
         }
 
         if (bestStats.Item1 == 0.0) {
@@ -142,8 +236,8 @@ namespace MarsLander {
       NeuralLander chump;
       NeuralLander best = champ;
       initializeSimParams();
-      double champScore = 100.0;
-      double chumpScore = 100.0;
+      double champScore;
+      double chumpScore;
       double bestScore = stats(best).Item1;
       int attempts;
       int mutates;
@@ -152,15 +246,15 @@ namespace MarsLander {
       attempts = attemptsPerTry;
       while (attempts > 0) {
         attempts--;
-        if (attempts % 20 == 0) {
-          //Console.WriteLine("Attempts left: " + attempts);
-        }
+        //if (attempts % 20 == 0) {
+        //  sLog.WriteLine("Attempts left: " + attempts);
+        //}
 
         chump = new NeuralLander(champ);
 
         mutates = mutatesPerAttempt;
         while (mutates > 0) {
-          //Console.WriteLine("Mutates left: " + mutates);
+          //sLog.WriteLine("Mutates left: " + mutates);
           mutates--;
           chump.mutate();
           chumpScore = stats(chump).Item1;
@@ -173,12 +267,12 @@ namespace MarsLander {
             if (champScore < bestScore) {
               best = champ;
               bestScore = champScore;
-              //Console.WriteLine("(attempt) bestStats: " + stats(best));
+              sLog.WriteLine("(attempt) bestStats: " + stats(best));
             }
           }
 
           if (champScore == 0.0) {
-            Console.WriteLine("champScore: " + champScore + ", chumpScore: " + chumpScore + ", lands: " + stats(champ).Item2);
+            sLog.WriteLine("champScore: " + champScore + ", chumpScore: " + chumpScore + ", lands: " + stats(champ).Item2);
             return champ;
           }
         }
@@ -187,32 +281,39 @@ namespace MarsLander {
       return best;
     }
 
+    public static void finalTest(NeuralLander lander) {
+      int trials = 0;
+      int crashes = 0;
+      double? result;
+      for (double yVelocity = 0.0; yVelocity <= 10.0; yVelocity += 1.0) {
+        for (double wind = 0.0; wind <= 0.2; wind += 0.1) {
+          for (double acceleration = 1.0; acceleration <= 3.0; acceleration += 0.1) {
+            trials++;
+            sLog.WriteLine("yVelocity: " + yVelocity + ", wind: " + wind + ", acceleration: " + acceleration);
+            result = lander.simulate(false, false, yVelocity, wind, acceleration);
+            sLog.WriteLine("Result: " + result);
+            if (result != null) {
+              crashes++;
+            }
+          }
+        }
+      }
+      sLog.WriteLine("Trials: " + trials + " Crashes: " + crashes);
+    }
+
     [STAThread]
     static void Main(string[] args) {
-      //NeuralLander lander = localSearch();
+      sLog = File.AppendText(@"C:\Users\Logan\Desktop\pinkie_lander_output.txt");
+      sLog.WriteLine();
+      sLog.WriteLine(DateTime.Now);
       initializeSimParams();
       NeuralLander lander = new NeuralLander();
       Tuple<double, double, double> trial = Tuple.Create(10.0, -0.2, 3.0);
       Tuple<double, double, double> trial2 = Tuple.Create(1.0, 0.2, 3.0);
 
-      //lander = searchForSolution(lander, trial);
-      //lander = localSearchRestarts(10, 200, 30);
-      lander = searchForAll(lander, 1);
-
-      /*
-      List<Tuple<double, double, double>> tryit = new List<Tuple<double, double, double>>();
-      tryit.Add(trial);
-      tryit.Add(trial2);
-      lander = searchForAll(lander, 1, tryit);
-
-      lander = searchForSolution(lander, trial);
-      lander = searchForSolution(lander, trial2);
-      lander = searchForAll(lander, 1);
-      Console.WriteLine("Round two!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-      lander = searchForAll(lander, 1);
-      Console.WriteLine("Round three!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-      lander = localSearch(lander);
-      */
+      //lander = systematicLocalSearchRestarts(1000, 500);
+      //lander = systematicLocalSearchRestarts(10, 5);
+      //finalTest(lander);
 
       Display display = new Display();
       lander.UpdateTriggered += UpdateTriggeredEventHandler_print;
@@ -225,12 +326,10 @@ namespace MarsLander {
       displayThread.Start();
 
       do {
-        lander.simulate(true, false, trial.Item1, trial.Item2, trial.Item3);
-        //lander.simulate(true, false, 2.0, 0.2, 2.0);
-        //lander.simulate(true, false, 2.0, 0.1, 2.0);
-        //lander.simulate(true, false, 3.0, 3.0, 3.0);
+        lander.simulate(true, true);
       } while (MessageBox.Show("Show again?", "Restart Prompt", MessageBoxButtons.YesNo) == DialogResult.Yes);
-      Console.WriteLine(lander.ToString());
+      sLog.WriteLine(lander.ToString());
+      sLog.Close();
     }
   }
 }
