@@ -24,10 +24,10 @@ namespace MarsLander {
   public class LanderBase {
     protected double mAcceleration = 2.0;  // but should be varied
     protected double mWind;
-    private const double MAX_SAFE_LANDING_SPEED = 4.0;
-    private const double MIN_SAFE_X = -0.2;
-    private const double MAX_SAFE_X = 0.2;
-    private const int SLEEP_TIME_MS = 200;
+    protected const double MAX_SAFE_LANDING_SPEED = 4.0;
+    protected const double MIN_SAFE_X = -0.2;
+    protected const double MAX_SAFE_X = 0.2;
+    protected const int SLEEP_TIME_MS = 200;
 
     public event EventHandler<UpdateTriggeredEventArgs> UpdateTriggered;
 

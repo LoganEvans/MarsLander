@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MarsLander", "MarsLander\MarsLander.csproj", "{80D798CC-EBBA-4D02-9025-1A8EDC122B12}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PinkieTests", "PinkyTests\PinkieTests.csproj", "{B63E0CC7-FCB0-4A1B-A1E7-9120FCCEB770}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -13,6 +15,10 @@ Global
 		{80D798CC-EBBA-4D02-9025-1A8EDC122B12}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{80D798CC-EBBA-4D02-9025-1A8EDC122B12}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{80D798CC-EBBA-4D02-9025-1A8EDC122B12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B63E0CC7-FCB0-4A1B-A1E7-9120FCCEB770}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B63E0CC7-FCB0-4A1B-A1E7-9120FCCEB770}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B63E0CC7-FCB0-4A1B-A1E7-9120FCCEB770}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B63E0CC7-FCB0-4A1B-A1E7-9120FCCEB770}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

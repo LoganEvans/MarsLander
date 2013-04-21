@@ -12,9 +12,9 @@ namespace MarsLander {
     private static StreamWriter sLog;
 
     public static void UpdateTriggeredEventHandler_print(object sender, UpdateTriggeredEventArgs args) {
-      sLog.WriteLine("Height: " + args.height + " Y-Velocity: " + args.yVelocity +
-                     " Position: " + args.xPosition + " X-Velocity: " + args.xVelocity + " Fuel: " + args.fuel +
-                     " Wind: " + args.wind + " Acceleration: " + args.acceleration);
+      Console.WriteLine("Height: " + args.height + " Y-Velocity: " + args.yVelocity +
+                        " Position: " + args.xPosition + " X-Velocity: " + args.xVelocity + " Fuel: " + args.fuel +
+                        " Wind: " + args.wind + " Acceleration: " + args.acceleration);
     }
 
     public static List<Tuple<double, double, double>> simParams = null;
@@ -53,23 +53,24 @@ namespace MarsLander {
     public static NeuralLander systematicLocalSearchRestarts(int trials, int indecies) {
       NeuralLander testDummy;
       NeuralLander best = new NeuralLander();
-      Tuple<double, int> statsDummy, statsBest, prevStatsDummy;
+      Tuple<double, int> statsDummy, statsBest, prevStatsDummy, preJiggleStats;
       statsBest = stats(best);
-      for (int i = 0; i < trials; i++) {
+
+      for (int trial = 0; trial < trials; trial++) {
         testDummy = new NeuralLander();
-        testDummy = systematicLocalSearchRandomIndex(testDummy, indecies);
+        for (int i = 0; i < indecies; i++) {
+          testDummy = systematicLocalSearchRandomIndex(testDummy, indecies);
+        }
         statsDummy = stats(testDummy);
-
-        if (statsDummy.Item1 <= 100.0) {
-          sLog.WriteLine("Before exhaustive: " + statsDummy);
-          Console.WriteLine("Before exhaustive: " + statsDummy);
-
+        do {
+          preJiggleStats = statsDummy;
+          testDummy.jiggle(0.1);
           do {
-            prevStatsDummy = statsDummy;
+            prevStatsDummy = stats(testDummy);
             testDummy = systematicLocalSearch(testDummy);
             statsDummy = stats(testDummy);
-          } while (prevStatsDummy.Item1 != statsDummy.Item1);
-        }
+          } while (prevStatsDummy.Item1 > statsDummy.Item1);
+        } while (preJiggleStats.Item1 > statsDummy.Item1);
 
         if (statsDummy.Item1 < statsBest.Item1) {
           best = testDummy;
@@ -80,8 +81,8 @@ namespace MarsLander {
           sLog.WriteLine("Found a solution: " + statsBest + " at " + DateTime.Now);
           return best;
         }
-        sLog.WriteLine("Time: " + DateTime.Now + ", Round: " + i + ", best: " + statsBest + ", testDummy: " + statsDummy);
-        Console.WriteLine("Round: " + i + ", best: " + statsBest + ", testDummy: " + statsDummy);
+        sLog.WriteLine("Time: " + DateTime.Now + ", Round: " + trial + ", best: " + statsBest + ", testDummy: " + statsDummy);
+        Console.WriteLine("Round: " + trial + ", best: " + statsBest + ", testDummy: " + statsDummy);
         sLog.Flush();
       }
       return best;
@@ -96,8 +97,9 @@ namespace MarsLander {
     }
 
     public static NeuralLander systematicLocalSearch(NeuralLander lander) {
-      for (int i = 0; i < lander.getNumMutatable(); i++) {
+      for (int i = lander.getNumMutatable() - 1; i >= 0; i--) {
         lander = systematicLocalSearchOnIndex(lander, i);
+        //Console.WriteLine("Stats: " + stats(lander));
       }
       return lander;
     }
@@ -272,7 +274,7 @@ namespace MarsLander {
       return best;
     }
 
-    public static void finalTest(NeuralLander lander) {
+    public static void finalTest(LanderBase lander) {
       int trials = 0;
       int crashes = 0;
       int crashesPerAcc;
@@ -282,7 +284,7 @@ namespace MarsLander {
         crashesPerAcc = 0;
         trialsPerAcc = 0;
         for (double yVelocity = 0.0; yVelocity <= 10.05; yVelocity += 0.5) {
-          for (double wind = 0.0; wind <= 0.205; wind += 0.05) {
+          for (double wind = -0.19; wind <= 0.205; wind += 0.05) {
             trialsPerAcc++;
             trials++;
             result = lander.simulate(false, false, yVelocity, wind, acceleration);
@@ -297,6 +299,8 @@ namespace MarsLander {
         sLog.WriteLine("At acceleration: " + acceleration + " Trials: " + trialsPerAcc + " Crashes: " + crashesPerAcc);
       }
       sLog.WriteLine("Trials: " + trials + " Crashes: " + crashes);
+      Console.WriteLine("Trials: " + trials + " Crashes: " + crashes);
+      Console.ReadKey();
     }
 
     [STAThread]
@@ -304,29 +308,78 @@ namespace MarsLander {
       sLog = File.AppendText(@"C:\Users\Logan\Desktop\pinkie_lander_output.txt");
       sLog.WriteLine();
       sLog.WriteLine(DateTime.Now);
-      initializeSimParams();
-      NeuralLander lander = new NeuralLander();
-      Tuple<double, double, double> trial = Tuple.Create(10.0, -0.2, 3.0);
-      Tuple<double, double, double> trial2 = Tuple.Create(1.0, 0.2, 3.0);
-
-      lander = systematicLocalSearchRestarts(1000, 500);
-      finalTest(lander);
+      FuzzyController lander = new FuzzyController();
 
       Display display = new Display();
       lander.UpdateTriggered += UpdateTriggeredEventHandler_print;
       lander.UpdateTriggered += display.UpdateTriggeredEventHandler_paint;
-
       Thread displayThread = new Thread((ThreadStart)delegate {
-            Application.EnableVisualStyles();
-            System.Windows.Forms.Application.Run(display);
-        });
-      displayThread.Start();
+        Application.EnableVisualStyles();
+        System.Windows.Forms.Application.Run(display);
+      });
 
+      initializeSimParams();
+      finalTest(lander);
+
+      /*
+      displayThread.Start();
+      var trial = Tuple.Create(0.0, -0.2, 1.0);
       do {
-        lander.simulate(true, true);
+        //lander.simulate(true, true);
+        lander.simulate(true, false, trial.Item1, trial.Item2, trial.Item3);
       } while (MessageBox.Show("Show again?", "Restart Prompt", MessageBoxButtons.YesNo) == DialogResult.Yes);
-      sLog.WriteLine(lander.ToString());
-      sLog.Close();
+      */
+
+      //NeuralLander lander = new NeuralLander();
+      //Tuple<double, double, double> trial = Tuple.Create(10.0, -0.2, 3.0);
+      //Tuple<double, double, double> trial2 = Tuple.Create(1.0, 0.2, 3.0);
+      //Tuple<double, int> statsBest, statsPrev, statsLander;
+
+      //NeuralLander best = new NeuralLander(lander);
+      //statsBest = stats(best);
+      //int round = 0;
+
+      //while (statsBest.Item1 != 0.0) {
+      //  lander = new NeuralLander();
+      //  statsLander = stats(lander);
+      //  statsPrev = statsLander;
+      //  do {
+      //    statsPrev = statsLander;
+      //    lander.jiggle(0.5);
+      //    lander = systematicLocalSearch(lander);
+      //    statsLander = stats(lander);
+      //    if (statsLander.Item1 < statsBest.Item1) {
+      //      best = new NeuralLander(lander);
+      //      statsBest = statsLander;
+      //    }
+      //  } while (statsLander.Item1 < statsPrev.Item1);
+      //  Console.WriteLine("Round: " + round + " best: " + statsBest + ", current: " + statsPrev);
+      //  round++;
+      //}
+
+      ////lander = systematicLocalSearchRestarts(1000, 500);
+      //finalTest(lander);
+      ////lander = searchForSolution(lander, trial, 100);
+
+      ////sLog.WriteLine(lander.ToString());
+
+      //Display display = new Display();
+      //lander.UpdateTriggered += UpdateTriggeredEventHandler_print;
+      //lander.UpdateTriggered += display.UpdateTriggeredEventHandler_paint;
+
+      //Thread displayThread = new Thread((ThreadStart)delegate {
+      //      Application.EnableVisualStyles();
+      //      System.Windows.Forms.Application.Run(display);
+      //  });
+
+      //displayThread.Start();
+
+      //do {
+      //  //lander.simulate(true, true);
+      //  lander.simulate(true, false, trial.Item1, trial.Item2, trial.Item3);
+      //} while (MessageBox.Show("Show again?", "Restart Prompt", MessageBoxButtons.YesNo) == DialogResult.Yes);
+
+      ////sLog.Close();
     }
   }
 }

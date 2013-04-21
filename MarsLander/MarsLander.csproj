@@ -49,6 +49,8 @@
     <Compile Include="Display.Designer.cs">
       <DependentUpon>Display.cs</DependentUpon>
     </Compile>
+    <Compile Include="FuzzyController.cs" />
+    <Compile Include="FuzzySet.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="LanderBase.cs" />
     <Compile Include="NeuralNetwork.cs" />

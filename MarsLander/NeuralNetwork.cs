@@ -29,7 +29,8 @@ namespace MarsLander {
     private NeuralConnection mHiddenToOutputs = null;
     private NeuralVector mOutputs = null;
     private readonly int mNumHiddenLayers = 2;
-    private const int numInputs = 8;
+    //private const int numInputs = 8;
+    private const int numInputs = 9;
     private const int numOutputs = 2;
     private static Random mRand = null;
 
@@ -87,7 +88,8 @@ namespace MarsLander {
       retval[4] = mFuel;
       retval[5] = mWind;
       retval[6] = mAcceleration;
-      retval[7] = 1.0;
+      retval[7] = Utilities.getGaussian();
+      retval[8] = 1.0;
     //retval[0] = mYVelocity;
     //retval[1] = mWind;
     //retval[2] = 1.0;
@@ -129,6 +131,12 @@ namespace MarsLander {
 
       mHiddenToOutputs.randomize();
       mOutputs.randomize();
+    }
+
+    public void jiggle(double factor) {
+      for (int i = 0; i < getNumMutatable(); i++) {
+        modify(i, Utilities.getGaussian() * factor);
+      }
     }
 
     public void modify(int index, double augment) {
